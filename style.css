@@ -829,6 +829,34 @@ button:hover {
   font-style: italic;
 }
 
+.source-link {
+  display: inline-block;
+  margin-top: 1.5rem;
+  padding: 10px 16px;
+  background-color: rgba(2, 191, 231, 0.9);
+  color: white;
+  text-decoration: none;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 14px;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.source-link:hover {
+  background-color: rgba(2, 191, 231, 1);
+  transform: scale(1.05);
+}
+
+body.night-mode .source-link {
+  background-color: rgba(2, 191, 231, 0.8);
+  color: #000;
+}
+
+body.night-mode .source-link:hover {
+  background-color: rgba(2, 191, 231, 1);
+  color: #000;
+}
+
 /* Make cards clickable */
 .image-card {
   cursor: pointer;

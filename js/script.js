@@ -247,6 +247,8 @@ function openImageModal(image) {
 
   // Build the media HTML
   let mediaHTML = '';
+  let sourceLink = ''; // Link to view the media on its original source
+  
   if (image.media_type === 'image') {
     const imgUrl = image.hdurl || image.url;
     mediaHTML = `<img src="${imgUrl}" alt="${image.title}" class="modal-image" />`;
@@ -256,8 +258,12 @@ function openImageModal(image) {
     if (videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be')) {
       const embedUrl = getEmbedUrl(videoUrl);
       mediaHTML = `<iframe src="${embedUrl}" title="${image.title}" class="modal-video" allowfullscreen></iframe>`;
+      // Create a link to watch the video on YouTube
+      sourceLink = `<a href="${videoUrl}" target="_blank" rel="noopener noreferrer" class="source-link">🎬 Watch on YouTube</a>`;
     } else if (videoUrl.includes('.mp4')) {
       mediaHTML = `<video controls class="modal-video"><source src="${videoUrl}" type="video/mp4">Your browser does not support the video tag.</video>`;
+      // Create a link to view the video source
+      sourceLink = `<a href="${videoUrl}" target="_blank" rel="noopener noreferrer" class="source-link">📹 View Video Source</a>`;
     } else {
       const imgUrl = image.hdurl || image.url;
       mediaHTML = `<img src="${imgUrl}" alt="${image.title}" class="modal-image" />`;
@@ -277,6 +283,7 @@ function openImageModal(image) {
     <p class="modal-date">${new Date(image.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
     <p class="modal-description">${explanation}</p>
     ${image.copyright ? `<p class="modal-credit">${image.copyright}</p>` : ''}
+    ${sourceLink}
   `;
 
   // Show the modal
