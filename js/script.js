@@ -28,8 +28,48 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Make sure both dates are selected
     if (!startDate || !endDate) {
-      alert('Please select both a start and end date');
+      gallery.innerHTML = `
+        <div class="error-container">
+          <p class="error-title">📅 Date Selection Required</p>
+          <p class="error-message">Please select both a start date and an end date to explore the cosmos!</p>
+        </div>
+      `;
       return;
+    }
+
+    // Validate that start date is not after end date
+    if (startDate > endDate) {
+      gallery.innerHTML = `
+        <div class="error-container">
+          <p class="error-title">⚠️ Invalid Date Range</p>
+          <p class="error-message">Your start date cannot be after your end date. Please check your dates and try again.</p>
+        </div>
+      `;
+      return;
+    }
+
+    // Validate that end date is not in the future
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time to start of day for fair comparison
+    
+    if (end > today) {
+      gallery.innerHTML = `
+        <div class="error-container">
+          <p class="error-title">🚀 Future Dates Not Available</p>
+          <p class="error-message">The date range you selected includes dates in the future.</p>
+          <p class="error-subtext">💡 Tip: Keep looking ahead, we just don't have those sky images yet</p>
+        </div>
+      `;
+      return;
+    }
+
+    const daysDiff = (end - start) / (1000 * 60 * 60 * 24);
+    
+    // Warn if date range is too large (more than 1 year)
+    if (daysDiff > 365) {
+      console.warn('Large date range selected:', daysDiff, 'days');
     }
 
     console.log(`Fetching images from ${startDate} to ${endDate}`);
@@ -84,31 +124,56 @@ async function fetchAPODImages(startDate, endDate, gallery) {
     let allImages = [];
     let page = 1;
     let hasMore = true;
+    let fetchError = null;
 
     while (hasMore) {
       const url = `https://science.nasa.gov/wp-json/wp/v2/apod-basic?per_page=100&page=${page}`;
       console.log(`Fetching page ${page}...`);
 
-      const response = await fetch(url);
+      try {
+        const response = await fetch(url);
 
-      if (!response.ok) {
-        throw new Error(`API Error ${response.status}: ${response.statusText}`);
-      }
-
-      const images = await response.json();
-
-      if (!images || images.length === 0) {
-        hasMore = false;
-      } else {
-        allImages = allImages.concat(images);
-        page++;
-        
-        // Check if we've gone back far enough in time
-        const oldestDate = new Date(images[images.length - 1].date);
-        const targetStart = new Date(startDate);
-        if (oldestDate < targetStart && allImages.length > 100) {
-          hasMore = false; // Stop fetching if we have enough data
+        if (!response.ok) {
+          // Handle specific HTTP errors
+          if (response.status === 503) {
+            fetchError = 'Service Unavailable: The NASA API is currently unavailable. Please try again later.';
+          } else if (response.status === 429) {
+            fetchError = 'Too Many Requests: The API rate limit has been reached. Please wait a few minutes and try again.';
+          } else if (response.status === 404) {
+            fetchError = 'Not Found: The NASA API endpoint could not be found.';
+          } else if (response.status >= 500) {
+            fetchError = `Server Error (${response.status}): The NASA servers are experiencing issues. Please try again later.`;
+          } else {
+            fetchError = `API Error ${response.status}: ${response.statusText}`;
+          }
+          throw new Error(fetchError);
         }
+
+        const images = await response.json();
+
+        if (!images || images.length === 0) {
+          hasMore = false;
+        } else {
+          allImages = allImages.concat(images);
+          page++;
+          
+          // Check if we've gone back far enough in time
+          const oldestDate = new Date(images[images.length - 1].date);
+          const targetStart = new Date(startDate);
+          if (oldestDate < targetStart && allImages.length > 100) {
+            hasMore = false; // Stop fetching if we have enough data
+          }
+        }
+      } catch (fetchErr) {
+        // Network error or parse error
+        if (fetchErr instanceof TypeError && fetchErr.message.includes('fetch')) {
+          fetchError = 'Network Error: Unable to connect to NASA\'s servers. Please check your internet connection.';
+        } else if (fetchErr instanceof SyntaxError) {
+          fetchError = 'Data Error: The server returned invalid data. Please try again.';
+        } else {
+          fetchError = fetchErr.message;
+        }
+        throw new Error(fetchError);
       }
     }
 
@@ -126,7 +191,13 @@ async function fetchAPODImages(startDate, endDate, gallery) {
     console.log(`Found ${filteredImages.length} images in date range ${startDate} to ${endDate}`);
 
     if (filteredImages.length === 0) {
-      gallery.innerHTML = `<p style="text-align: center; padding: 2rem;">No images found for this date range. The archive may only have recent data available.</p>`;
+      gallery.innerHTML = `
+        <div class="error-container">
+          <p class="error-title">🔍 No Images Found</p>
+          <p class="error-message">No images were found for the date range you selected (${startDate} to ${endDate}).</p>
+          <p class="error-subtext">💡 Tip: Try selecting a more recent date range, or check that your start date is before your end date.</p>
+        </div>
+      `;
       return;
     }
 
@@ -134,15 +205,30 @@ async function fetchAPODImages(startDate, endDate, gallery) {
     displayImages(filteredImages, gallery);
 
   } catch (error) {
-    // Show an error message if something went wrong
+    // Show a comprehensive error message if something went wrong
     console.error('Error:', error);
+    
+    let errorTitle = '❌ Error Loading Images';
+    let errorDetails = error.message || 'An unknown error occurred';
+    let errorTip = 'Check the browser console (press F12) for more details';
+
+    // Provide specific guidance for common errors
+    if (errorDetails.includes('Network Error')) {
+      errorTip = '💡 Tip: Check your internet connection and try again.';
+    } else if (errorDetails.includes('Service Unavailable') || errorDetails.includes('Server Error')) {
+      errorTip = '💡 Tip: NASA\'s servers may be temporarily down. Please try again in a few minutes.';
+    } else if (errorDetails.includes('Too Many Requests')) {
+      errorTip = '💡 Tip: You\'ve made too many requests. Wait a few minutes before trying again.';
+    } else if (errorDetails.includes('Not Found')) {
+      errorTip = '💡 Tip: There may be an issue with the NASA API. Contact support if this persists.';
+    }
+
     gallery.innerHTML = `
-      <p style="text-align: center; color: red; padding: 2rem;">
-        ❌ Error loading images: ${error.message}
-      </p>
-      <p style="text-align: center; color: #666; font-size: 12px; padding: 0 2rem;">
-        Check the browser console (press F12) for more details
-      </p>
+      <div class="error-container">
+        <p class="error-title">${errorTitle}</p>
+        <p class="error-message">${errorDetails}</p>
+        <p class="error-subtext">${errorTip}</p>
+      </div>
     `;
   }
 }
