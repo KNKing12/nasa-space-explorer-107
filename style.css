@@ -831,7 +831,8 @@ button:hover {
 
 .source-link {
   display: inline-block;
-  margin-top: 1.5rem;
+  margin-top: 0.75rem;
+  margin-bottom: 1.5rem;
   padding: 10px 16px;
   background-color: rgba(2, 191, 231, 0.9);
   color: white;

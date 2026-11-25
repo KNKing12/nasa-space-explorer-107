@@ -280,10 +280,10 @@ function openImageModal(image) {
   modalBody.innerHTML = `
     ${mediaHTML}
     <h2 class="modal-title">${image.title}</h2>
+    ${sourceLink}
     <p class="modal-date">${new Date(image.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
     <p class="modal-description">${explanation}</p>
     ${image.copyright ? `<p class="modal-credit">${image.copyright}</p>` : ''}
-    ${sourceLink}
   `;
 
   // Show the modal
