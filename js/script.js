@@ -1,6 +1,10 @@
 // NASA API Key
 const NASA_API_KEY = 'pGcCCBDnKtdCfBKBQjfJDwCLDRfLgj8kMTJwwWHg';
 
+// Global variables for modal navigation
+let currentImages = [];
+let currentImageIndex = 0;
+
 // Wait for the page to load, then set everything up
 document.addEventListener('DOMContentLoaded', () => {
   // Get HTML elements from the page
@@ -49,6 +53,13 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       modal.classList.remove('active');
+    }
+    // Navigate with arrow keys
+    if (e.key === 'ArrowLeft') {
+      previousImage();
+    }
+    if (e.key === 'ArrowRight') {
+      nextImage();
     }
   });
 });
@@ -167,10 +178,14 @@ function displayImages(images, gallery) {
     return;
   }
 
+  // Store the current images and reset index for modal navigation
+  currentImages = [...images].sort((a, b) => new Date(b.date) - new Date(a.date));
+  currentImageIndex = 0;
+
   console.log(`Displaying ${images.length} images`);
 
   // Create a card for each image (sorted by date, newest first)
-  images.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach((image, index) => {
+  currentImages.forEach((image, index) => {
     console.log(`Image ${index}:`, image.title, 'Media type:', image.media_type, 'URL:', image.url);
 
     const card = document.createElement('div');
@@ -221,6 +236,9 @@ function displayImages(images, gallery) {
 
     // Add click event to open modal
     card.addEventListener('click', () => {
+      // Store the current index for modal navigation
+      currentImageIndex = index;
+      
       // Add bounce animation
       card.classList.add('bouncing');
       
@@ -231,7 +249,7 @@ function displayImages(images, gallery) {
       
       // Open modal after a short delay to let bounce play
       setTimeout(() => {
-        openImageModal(image);
+        openImageModal(currentImages[currentImageIndex]);
       }, 150);
     });
 
@@ -276,6 +294,19 @@ function openImageModal(image) {
     explanation = explanation.replace(/<[^>]*>/g, '');
   }
 
+  // Calculate navigation button visibility
+  const showPrev = currentImageIndex > 0;
+  const showNext = currentImageIndex < currentImages.length - 1;
+  
+  // Build navigation buttons
+  const navButtons = `
+    <div class="modal-nav">
+      <button class="modal-nav-btn modal-prev" ${!showPrev ? 'disabled' : ''} onclick="previousImage()">← Previous</button>
+      <span class="modal-counter">${currentImageIndex + 1} / ${currentImages.length}</span>
+      <button class="modal-nav-btn modal-next" ${!showNext ? 'disabled' : ''} onclick="nextImage()">Next →</button>
+    </div>
+  `;
+
   // Build modal content
   modalBody.innerHTML = `
     ${mediaHTML}
@@ -284,8 +315,25 @@ function openImageModal(image) {
     <p class="modal-date">${new Date(image.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
     <p class="modal-description">${explanation}</p>
     ${image.copyright ? `<p class="modal-credit">${image.copyright}</p>` : ''}
+    ${navButtons}
   `;
 
   // Show the modal
   modal.classList.add('active');
+}
+
+// Navigate to the previous image in the modal
+function previousImage() {
+  if (currentImageIndex > 0) {
+    currentImageIndex--;
+    openImageModal(currentImages[currentImageIndex]);
+  }
+}
+
+// Navigate to the next image in the modal
+function nextImage() {
+  if (currentImageIndex < currentImages.length - 1) {
+    currentImageIndex++;
+    openImageModal(currentImages[currentImageIndex]);
+  }
 }
