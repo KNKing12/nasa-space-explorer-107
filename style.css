@@ -349,6 +349,16 @@ button:hover {
     left: 10px;
   }
   
+  /* Thinking cloud repositioned to bottom center on mobile */
+  .thinking-cloud {
+    position: fixed;
+    bottom: 20px;
+    top: auto;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 220px;
+  }
+  
   .cloud-shape {
     padding: 15px;
   }
